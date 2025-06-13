@@ -37,6 +37,8 @@ const show = (req, res) => {
     // Query SQL per ottenere un singolo poster tramite ID
     const sql = `SELECT * FROM posters WHERE id = ?`;
 
+    const reviewSql = `SELECT * FROM reviews WHERE id_poster = ?`;
+
     // Esegue la query al database passando l'ID come parametro
     connection.query(sql, [id], (err, posterResult) => {
         // Se c'è un errore nella query, restituisce un messaggio di errore
@@ -52,8 +54,17 @@ const show = (req, res) => {
             image_url: `${req.imagePath}${posterResult[0].image_url}`
         };
 
-        // Restituisce il poster in formato JSON
-        res.json(poster);
+        // Eseguo la query per mostrare le recensioni
+        connection.query(reviewSql, [id], (err, reviewResult) => {
+            if (err) return res.status(500).json({ error: 'Database error' });
+
+            // Aggiungo le recensioni al post
+            poster.reviews = reviewResult;
+
+            // Restituisce il poster in formato JSON
+            res.json(poster);
+
+        });
     });
 };
 
