@@ -7,7 +7,15 @@ const index = (req, res) => {
     connection.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
 
-        res.json(results);
+        const posters = results.map(result => {
+            const obj = {
+                ...result,
+                image_url: `${req.imagePath}${result.image_url}`
+            }
+            return obj;
+        })
+
+        res.json(posters);
     })
 
 }
@@ -23,7 +31,12 @@ const show = (req, res) => {
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
         if (posterResult.length === 0 || posterResult[0].id === null) return res.status(404).json({ error: `Poster con ID ${id} non trovato.` });
 
-        res.json(posterResult)
+        const poster = {
+            ...posterResult[0],
+            image_url: `${req.imagePath}${posterResult[0].image_url}`
+        }
+
+        res.json(poster)
     })
 }
 
