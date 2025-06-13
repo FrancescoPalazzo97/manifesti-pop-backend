@@ -2,7 +2,7 @@ const express = require(`express`);
 const router = express.Router();
 const postersController = require(`../controllers/postersController`)
 
-const { index, show, store } = postersController;
+const { index, show, storeReviews } = postersController;
 
 // INDEX
 router.get('/', index);
@@ -11,6 +11,6 @@ router.get('/', index);
 router.get(`/:id`, show);
 
 // STORE
-router.post('/:id', store);
+router.post('/:id', storeReviews);
 
 module.exports = router;

@@ -40,7 +40,7 @@ const show = (req, res) => {
     })
 }
 
-const store = (req, res, next) => {
+const storeReviews = (req, res, next) => {
     const id = parseInt(req.params.id);
 
     const { vote, text } = req.body;
@@ -59,4 +59,4 @@ const store = (req, res, next) => {
 
 }
 
-module.exports = { index, show, store };
+module.exports = { index, show, storeReviews };
