@@ -1,4 +1,4 @@
-const connection = require(`./data/db`)
+const connection = require(`../data/db`)
 
 const index = (req, res) => {
 
