@@ -11,6 +11,6 @@ router.get('/', index);
 router.get(`/:id`, show);
 
 // STORE
-router.post('/', store);
+router.post('/:id', store);
 
 module.exports = router;

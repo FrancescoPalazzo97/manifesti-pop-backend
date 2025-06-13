@@ -41,14 +41,16 @@ const show = (req, res) => {
 }
 
 const store = (req, res, next) => {
-    const {id_poster, vote, text} = req.body;
+    const id = parseInt(req.params.id);
+
+    const { vote, text } = req.body;
 
     const sql = `INSERT INTO reviews (id_poster, vote, text, created_at) VALUES (?, ?, ?, NOW())`;
-    connection.query(sql, [id_poster, vote, text], (err, result) => {
-        if (err) {
-            console.log(err)
-            return next('errore durante l\'inserimento della recensione');
-        };
+
+    connection.query(sql, [id, vote, text], (err, result) => {
+
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
         res.status(201).json({
             status: 'success',
             message: 'Recensione inserita con successo'
