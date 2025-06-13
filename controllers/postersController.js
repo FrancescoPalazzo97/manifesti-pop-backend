@@ -57,10 +57,7 @@ const show = (req, res) => {
     });
 };
 
-// Funzione per inserire una nuova recensione nel database
-const store = (req, res, next) => {
-
-    // Converte l'ID ricevuto dai parametri della richiesta in un numero intero
+const storeReviews = (req, res, next) => {
     const id = parseInt(req.params.id);
 
     // Estrae "vote" e "text" dal corpo della richiesta
@@ -83,5 +80,4 @@ const store = (req, res, next) => {
 
 };
 
-// Esporta le funzioni per poterle utilizzare nel router
-module.exports = { index, show, store };
+module.exports = { index, show, storeReviews };
