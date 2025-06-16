@@ -14,7 +14,7 @@ router.get('/', index);
 // Definisce la rotta per ottenere un singolo poster tramite ID (SHOW)
 router.get(`/:id`, show);
 
-// STORE
+// STORE REVIEWS
 router.post('/:id', storeReviews);
 
 // Esporta il router per poterlo utilizzare nell'app principale

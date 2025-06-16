@@ -68,7 +68,7 @@ const show = (req, res) => {
     });
 };
 
-const storeReviews = (req, res, next) => {
+const storeReviews = (req, res) => {
     const id = parseInt(req.params.id);
 
     // Estrae "vote" e "text" dal corpo della richiesta
