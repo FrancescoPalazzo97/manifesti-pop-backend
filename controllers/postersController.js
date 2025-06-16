@@ -90,4 +90,144 @@ const storeReviews = (req, res) => {
 
 };
 
-module.exports = { index, show, storeReviews };
+// Funzione per ottenere i poster più venduti
+const getMostSold = (req, res) => {
+    // Parametro opzionale per limitare il numero di risultati (default: 10)
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Query SQL per ordinare i poster per total_sell in ordine decrescente
+    const sql = `
+        SELECT * FROM posters 
+        WHERE available = 1 
+        ORDER BY total_sell DESC 
+        LIMIT ?
+    `;
+
+    connection.query(sql, [limit], (err, results) => {
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
+        // Trasforma i risultati per includere il percorso completo dell'immagine
+        const posters = results.map(result => {
+            return {
+                ...result,
+                image_url: `${req.imagePath}${result.image_url}`
+            };
+        });
+
+        res.json({
+            status: 'success',
+            message: `Top ${limit} poster più venduti`,
+            data: posters
+        });
+    });
+};
+
+// Funzione per ottenere i poster più recenti
+const getMostRecent = (req, res) => {
+    // Parametro opzionale per limitare il numero di risultati di default lo imposto a 10
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Query SQL per ordinare i poster per data di creazione in ordine decrescente
+    const sql = `
+        SELECT * FROM posters 
+        WHERE available = 1 
+        ORDER BY creation_date DESC 
+        LIMIT ?
+    `;
+
+    connection.query(sql, [limit], (err, results) => {
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
+        // Trasforma i risultati per includere il percorso completo dell'immagine
+        const posters = results.map(result => {
+            return {
+                ...result,
+                image_url: `${req.imagePath}${result.image_url}`
+            };
+        });
+
+        res.json({
+            status: 'success',
+            message: `Ultimi ${limit} poster aggiunti`,
+            data: posters
+        });
+    });
+};
+
+// Funzione per ottenere tutti gli artisti disponibili
+const getArtists = (req, res) => {
+    // Query SQL per ottenere tutti gli artisti distinti con il conteggio dei loro poster
+    const sql = `
+        SELECT 
+            artist,
+            COUNT(*) as poster_count,
+            SUM(total_sell) as total_sales
+        FROM posters 
+        WHERE available = 1 
+        GROUP BY artist 
+        ORDER BY artist ASC
+    `;
+
+    connection.query(sql, (err, results) => {
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
+        res.json({
+            status: 'success',
+            message: 'Lista artisti disponibili',
+            data: results
+        });
+    });
+};
+
+// Funzione per ottenere i poster di un artista specifico
+const getByArtist = (req, res) => {
+    const artist = req.params.artist;
+
+    // Parametri per ordinamento e limite
+    const orderBy = req.query.orderBy || 'creation_date'; // total_sell, price, creation_date
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
+    const limit = parseInt(req.query.limit) || 50;
+
+    // Validazione del parametro orderBy per sicurezza
+    const validOrderBy = ['total_sell', 'price', 'creation_date', 'title'];
+    if (!validOrderBy.includes(orderBy)) {
+        return res.status(400).json({
+            error: `Parametro orderBy non valido. Valori accettati: ${validOrderBy.join(', ')}`
+        });
+    }
+
+    // Query SQL per ottenere i poster di un artista specifico
+    const sql = `
+        SELECT * FROM posters 
+        WHERE artist = ? AND available = 1 
+        ORDER BY ${orderBy} ${order}
+        LIMIT ?
+    `;
+
+    connection.query(sql, [artist, limit], (err, results) => {
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                error: `Nessun poster trovato per l'artista: ${artist}`
+            });
+        }
+
+        const posters = results.map(result => {
+            return {
+                ...result,
+                image_url: `${req.imagePath}${result.image_url}`
+            };
+        });
+
+        res.json({
+            status: 'success',
+            message: `Poster dell'artista: ${artist}`,
+            artist: artist,
+            total_found: results.length,
+            data: posters
+        });
+    });
+};
+
+module.exports = { index, show, storeReviews, getMostSold, getMostRecent, getByArtist, getArtists };
