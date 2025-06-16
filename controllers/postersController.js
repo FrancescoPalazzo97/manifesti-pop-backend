@@ -124,7 +124,7 @@ const getMostSold = (req, res) => {
 
 // Funzione per ottenere i poster più recenti
 const getMostRecent = (req, res) => {
-    // Parametro opzionale per limitare il numero di risultati (default: 10)
+    // Parametro opzionale per limitare il numero di risultati di default lo imposto a 10
     const limit = parseInt(req.query.limit) || 10;
 
     // Query SQL per ordinare i poster per data di creazione in ordine decrescente
@@ -213,7 +213,6 @@ const getByArtist = (req, res) => {
             });
         }
 
-        // Trasforma i risultati per includere il percorso completo dell'immagine
         const posters = results.map(result => {
             return {
                 ...result,
