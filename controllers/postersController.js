@@ -31,22 +31,21 @@ const index = (req, res) => {
 const show = (req, res) => {
 
     // Converte l'ID ricevuto dai parametri della richiesta in un numero intero
-    const id = parseInt(req.params.id);
-    console.log(id); // Stampa l'ID nel terminale per verificare il valore
+    const { slug } = req.params;
 
     // Query SQL per ottenere un singolo poster tramite ID
-    const sql = `SELECT * FROM posters WHERE id = ?`;
+    const sql = `SELECT * FROM posters WHERE slug = ?`;
 
-    const reviewSql = `SELECT * FROM reviews WHERE id_poster = ?`;
+    const reviewSql = `SELECT * FROM reviews WHERE poster_slug = ?`;
 
     // Esegue la query al database passando l'ID come parametro
-    connection.query(sql, [id], (err, posterResult) => {
+    connection.query(sql, [slug], (err, posterResult) => {
         // Se c'è un errore nella query, restituisce un messaggio di errore
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
 
         // Se il poster non esiste, restituisce un errore 404
-        if (posterResult.length === 0 || posterResult[0].id === null)
-            return res.status(404).json({ error: `Poster con ID ${id} non trovato.` });
+        if (posterResult.length === 0 || posterResult[0].slug === null)
+            return res.status(404).json({ error: `Poster con slug ${slug} non trovato.` });
 
         // Crea un oggetto poster con il percorso completo dell'immagine
         const poster = {
@@ -55,7 +54,7 @@ const show = (req, res) => {
         };
 
         // Eseguo la query per mostrare le recensioni
-        connection.query(reviewSql, [id], (err, reviewResult) => {
+        connection.query(reviewSql, [slug], (err, reviewResult) => {
             if (err) return res.status(500).json({ error: 'Database error' });
 
             // Aggiungo le recensioni al post

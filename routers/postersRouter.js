@@ -12,7 +12,7 @@ const { index, show, storeReviews } = postersController;
 router.get('/', index);
 
 // Definisce la rotta per ottenere un singolo poster tramite ID (SHOW)
-router.get(`/:id`, show);
+router.get(`/:slug`, show);
 
 // STORE REVIEWS
 router.post('/:id', storeReviews);
