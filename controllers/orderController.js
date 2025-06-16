@@ -2,6 +2,16 @@ const connection = require(`../data/db`)
 
 const storeOrders = (req, res) => {
 
+    // funzione per la validazione dei dati numerici
+    const numValidator = (num) => {
+        if (isNaN(num) || num <= 0) {
+            return res.status(400).json({
+                error: `Dati non validi`
+            });
+        }
+        return num;
+    }
+
     // Recupero dati dallla body request
     const {
         name,
@@ -15,47 +25,11 @@ const storeOrders = (req, res) => {
     if (!name || !email || !address || !shipment_costs || !posters || posters.length === 0)
         return res.status(400).json({ error: `Mancano dei dati obbligatori` });
 
+
     // Controllo che shipment_costs sia un numero valido
-    const shipmentCosts = parseFloat(shipment_costs);
-    if (isNaN(shipmentCosts) || shipmentCosts < 0) {
-        return res.status(400).json({
-            error: 'shipment_costs deve essere un numero valido maggiore o uguale a 0'
-        });
-    }
+    const shipmentCosts = numValidator(parseFloat(shipment_costs));
 
-    // Controllo che ogni poster abbia dati validi
-    for (let i = 0; i < posters.length; i++) {
-        const poster = posters[i];
-
-        // Controllo che id sia un numero valido
-        const posterId = parseInt(poster.id);
-        if (isNaN(posterId) || posterId <= 0) {
-            return res.status(400).json({
-                error: `Poster ${i + 1}: ID deve essere un numero intero positivo`
-            });
-        }
-
-        // Controllo che quantity sia un numero valido
-        const quantity = parseInt(poster.quantity);
-        if (isNaN(quantity) || quantity <= 0) {
-            return res.status(400).json({
-                error: `Poster ${i + 1}: quantity deve essere un numero intero positivo`
-            });
-        }
-
-        // Aggiorno l'array con i valori convertiti correttamente
-        posters[i].id = posterId;
-        posters[i].quantity = quantity;
-    }
-
-    console.log('=== DEBUG DATI ===');
-    console.log('Name:', name);
-    console.log('Email:', email);
-    console.log('Address:', address);
-    console.log('Shipment costs:', shipmentCosts, 'Type:', typeof shipmentCosts);
-    console.log('Posters:', posters);
-
-    // Funzioneper gestire gli errori
+    // Funzione per gestire gli errori
     const handleError = (message) => {
         // rollback annulla tutte le modifiche fatte fino ad ora all'interno di transaction
         connection.rollback(() => {
@@ -80,10 +54,11 @@ const storeOrders = (req, res) => {
         // Array che mi va a contenere i dati elaborati di ogni poster => {poster_id, quantity, unit_price}
         let elaboratedPosters = [];
 
+        // funzione createOrder() --------------------------------------------------------------------------------------------------------------------------------------
         // Creo la funzione che andrà a creare l'ordine una volta che avrò finito di elaborare i posters
         const createOrder = () => {
             // Calcolo del prezzo totale
-            const total_price = subtotal + parseFloat(shipment_costs);
+            const total_price = subtotal + parseFloat(shipmentCosts);
 
             // Adesso vado ad inserire l'ordine nella table orders
             const orderSql = `
@@ -91,7 +66,7 @@ const storeOrders = (req, res) => {
             (name, email, address, subtotal_price, shipment_costs, total_price, order_status, order_date, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
             `
-            connection.query(orderSql, [name, email, address, subtotal, shipment_costs, total_price], (err, orderResult) => {
+            connection.query(orderSql, [name, email, address, subtotal, shipmentCosts, total_price], (err, orderResult) => {
                 if (err) return handleError(`Errore creazione ordine: ${err}`);
 
                 // Mi prendo l'id dell'ordine
@@ -112,49 +87,57 @@ const storeOrders = (req, res) => {
                     connection.query(posterInsertSql, [order_id, poster.poster_id, poster.quantity, poster.unit_price], err => {
                         if (err) return handleError(`Errore inserimento nella tabella di collegamento: ${err}`);
 
-                        /*
+                        // Vado ad aggiornare la tabella dei poster sottraendo le vendite allo stock
+                        // Quindi vado a ridurre lo stock disponibile, aumento le vendite del prodotto ed aggiorno il temspamp
+                        const updateSql = `
+                            UPDATE posters
+                            SET stock_quantity = stock_quantity - ?,
+                                total_sell = total_sell + ?,
+                                updated_at = NOW()
+                            WHERE id = ?
+                        `
 
+                        connection.query(updateSql, [poster.quantity, poster.quantity, poster.poster_id], (err) => {
 
-                        
-                            DEVO AGGIUNGERE LA QUERY PER AGGIORNARE LA TABELLA DEI Posters
-                            AL MOMENTO IL TUTTO È FUNZIONANTE PERÒ MANCA L'AGGIORNAMENTO DELLA TABBELLA IN QUESTIONE
+                            if (err) return handleError(`Errore durante l'aggiornamento dello stock: ${err}`);
 
+                            // Incremento il contatore degli inserimetni
+                            completedInserts++;
 
-
-                        */
-
-                        // Incremento il contatore degli inserimetni
-                        completedInserts++;
-
-                        // Controlle se ho finito
-                        if (completedInserts === elaboratedPosters.length) {
-                            // Faciio il COMMIT della transazione
-                            // commit() rende permanenti TUTTE le modifiche fatte finora
-                            connection.commit(err => {
-                                if (err) return handleError(`Errore commit: ${err}`);
-                                // Se arrivo qui tutto è andato bene quindi restituisco messaggio di successo
-                                res.status(201).json({
-                                    status: `success`,
-                                    message: `Ordine creato`,
-                                    data: {
-                                        order_id: order_id,
-                                        total_price: total_price
-                                    }
+                            // Controlle se ho finito
+                            if (completedInserts === elaboratedPosters.length) {
+                                // Faciio il COMMIT della transazione
+                                // commit() rende permanenti TUTTE le modifiche fatte finora
+                                connection.commit(err => {
+                                    if (err) return handleError(`Errore commit: ${err}`);
+                                    // Se arrivo qui tutto è andato bene quindi restituisco messaggio di successo
+                                    res.status(201).json({
+                                        status: `success`,
+                                        message: `Ordine creato`,
+                                        data: {
+                                            order_id: order_id,
+                                            total_price: total_price
+                                        }
+                                    })
                                 })
-                            })
-                        }
+                            }
+                        })
                     })
                 })
             })
         }
+        // fine funzione createOrder() ----------------------------------------------------------------------------------------------------------------------------------------
 
         console.log(`comicio a ciclarmi i poster`)
         // Mi ciclo i poster dell'ordine
         posters.forEach((posterData, i) => {
             console.log(`Ciclo poster ${i}`)
-            // Mi passo id e quantità come valori numerici
-            const posterId = parseInt(posterData.id);
-            const quantity = parseInt(posterData.quantity)
+
+            // Controllo che l'id sia un numero valido
+            const posterId = numValidator(parseInt(posterData.id));
+
+            // Controllo che quantity sia un numero valido
+            const quantity = numValidator(parseInt(posterData.quantity));
 
             // Recupero il poster corrispondente dal db
             const sql = `
