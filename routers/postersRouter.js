@@ -29,7 +29,7 @@ router.get('/artist/:artist', getByArtist);
 router.get(`/:slug`, show);
 
 // STORE REVIEWS
-router.post('/:id', storeReviews);
+router.post('/:slug', storeReviews);
 
 
 
