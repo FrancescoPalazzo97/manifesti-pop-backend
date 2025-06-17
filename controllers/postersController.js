@@ -68,16 +68,16 @@ const show = (req, res) => {
 };
 
 const storeReviews = (req, res) => {
-    const id = parseInt(req.params.id);
+    const slug = req.params.slug;
 
     // Estrae "vote" e "text" dal corpo della richiesta
     const { vote, text } = req.body;
 
     // Query SQL per inserire una nuova recensione nella tabella "reviews"
-    const sql = `INSERT INTO reviews (id_poster, vote, text, created_at) VALUES (?, ?, ?, NOW())`;
+    const sql = `INSERT INTO reviews (poster_slug, vote, text, created_at) VALUES (?, ?, ?, NOW())`;
 
     // Esegue la query al database passando i dati ricevuti
-    connection.query(sql, [id, vote, text], (err, result) => {
+    connection.query(sql, [slug, vote, text], (err, result) => {
         // Se c'è un errore nella query, restituisce un messaggio di errore
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
 
