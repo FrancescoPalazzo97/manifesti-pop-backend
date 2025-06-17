@@ -34,9 +34,16 @@ const show = (req, res) => {
     const { slug } = req.params;
 
     // Query SQL per ottenere un singolo poster tramite ID
-    const sql = `SELECT * FROM posters WHERE slug = ?`;
+    const sql = `
+        SELECT * FROM posters 
+        WHERE slug = ?
+    `;
 
-    const reviewSql = `SELECT * FROM reviews WHERE poster_slug = ?`;
+    const reviewSql = `
+        SELECT * FROM reviews 
+        WHERE poster_slug = ?
+        ORDER BY created_at DESC
+    `;
 
     // Esegue la query al database passando l'ID come parametro
     connection.query(sql, [slug], (err, posterResult) => {
@@ -74,7 +81,9 @@ const storeReviews = (req, res) => {
     const { vote, text } = req.body;
 
     // Query SQL per inserire una nuova recensione nella tabella "reviews"
-    const sql = `INSERT INTO reviews (poster_slug, vote, text, created_at) VALUES (?, ?, ?, NOW())`;
+    const sql = `INSERT INTO reviews 
+    (poster_slug, vote, text, created_at) 
+    VALUES (?, ?, ?, NOW())`;
 
     // Esegue la query al database passando i dati ricevuti
     connection.query(sql, [slug, vote, text], (err, result) => {
