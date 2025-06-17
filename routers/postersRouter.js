@@ -6,10 +6,12 @@ const router = express.Router();
 const postersController = require('../controllers/postersController')
 
 
-const { index, show, storeReviews, getMostSold, getMostRecent, getArtists, getByArtist } = postersController;
+const { index, show, storeReviews, getMostSold, getMostRecent, getArtists, getByArtist, search } = postersController;
 
 // Definisce la rotta per ottenere tutti i posters (INDEX)
 router.get('/', index);
+
+router.get(`/search`, search);
 
 // Definisce la rotta per ottenere i poster più venduti
 router.get('/most-sold', getMostSold);
@@ -28,6 +30,8 @@ router.get(`/:slug`, show);
 
 // STORE REVIEWS
 router.post('/:id', storeReviews);
+
+
 
 // Esporta il router per poterlo utilizzare nell'app principale
 module.exports = router;

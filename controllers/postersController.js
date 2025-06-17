@@ -230,4 +230,56 @@ const getByArtist = (req, res) => {
     });
 };
 
-module.exports = { index, show, storeReviews, getMostSold, getMostRecent, getByArtist, getArtists };
+const search = (req, res) => {
+    // Mi vad a prendere il parametro di ricerca
+    const term = req.query.term;
+
+    // Controllo se esiste
+    if (!term || term.trim().length === 0) {
+        return res.status(400).json({
+            error: `Parametro di ricerca mancante`
+        })
+    }
+
+    //Inserisco altri parametri di filtraggio????
+    // DA VEDERE 
+
+    console.log(`Cerco ${term}`);
+
+    // Qui vado a mettere il valore allínterno del simbolo % in modo da cercare il valore ovunque
+    const searchedTerm = `%${term}%`;
+
+    const sql = `
+        SELECT * FROM posters 
+        WHERE available = 1 
+        AND (
+            title LIKE ? OR 
+            artist LIKE ?
+        )
+    `;
+
+    // Mi creo un array dei valori da inserire nella query
+    const params = [searchedTerm, searchedTerm]
+
+    connection.query(sql, params, (err, searchResults) => {
+        if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
+
+        // Vado, come al solito, a definire il path dell'immagine
+        const posters = searchResults.map(result => {
+            return {
+                ...result,
+                image_url: `${req.imagePath}${result.image_url}`
+            }
+        })
+
+        // Restituisco i risultati
+        res.json({
+            status: 'success',
+            message: `Risultati ricerca per: "${term}"`,
+            data: posters
+        })
+    })
+
+}
+
+module.exports = { index, show, storeReviews, getMostSold, getMostRecent, getByArtist, getArtists, search };
