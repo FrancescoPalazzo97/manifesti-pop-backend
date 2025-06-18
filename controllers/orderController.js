@@ -64,7 +64,7 @@ const storeOrders = (req, res) => {
             const orderSql = `
             INSERT INTO orders 
             (name, email, address, subtotal_price, shipment_costs, total_price, order_status, order_date, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+            VALUES (?, ?, ?, ?, ?, ?, 'delivered', NOW(), NOW())
             `
             connection.query(orderSql, [name, email, address, subtotal, shipmentCosts, total_price], (err, orderResult) => {
                 if (err) return handleError(`Errore creazione ordine: ${err}`);
@@ -92,12 +92,10 @@ const storeOrders = (req, res) => {
                         const updateSql = `
                             UPDATE posters
                             SET stock_quantity = stock_quantity - ?,
-                                total_sell = total_sell + ?,
                                 updated_at = NOW()
                             WHERE id = ?
                         `
-
-                        connection.query(updateSql, [poster.quantity, poster.quantity, poster.poster_id], (err) => {
+                        connection.query(updateSql, [poster.quantity, poster.poster_id], (err) => {
 
                             if (err) return handleError(`Errore durante l'aggiornamento dello stock: ${err}`);
 
@@ -142,7 +140,7 @@ const storeOrders = (req, res) => {
             // Recupero il poster corrispondente dal db
             const sql = `
             SELECT * FROM posters
-            WHERE id = ? AND available = 1
+            WHERE id = ? AND stock_quantity > 0
             `
             connection.query(sql, [posterId], (err, result) => {
                 if (err) return handleError(`Errore database: ${err}`);
