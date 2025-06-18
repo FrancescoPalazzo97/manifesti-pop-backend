@@ -1,5 +1,6 @@
 // Importa la connessione al database dal file db.js
 const connection = require(`../data/db`);
+// const { param } = require("../routers/postersRouter");
 
 // Funzione per ottenere tutti i posters presenti nel database
 const index = (req, res) => {
@@ -104,11 +105,28 @@ const getMostSold = (req, res) => {
     // Parametro opzionale per limitare il numero di risultati (default: 10)
     const limit = parseInt(req.query.limit) || 10;
 
-    // Query SQL per ordinare i poster per total_sell in ordine decrescente
-    const sql = `
-        SELECT * FROM posters 
-        WHERE available = 1 
-        ORDER BY total_sell DESC 
+    // Query SQL che calcola le vendite reali dalla tabella orders_posters
+    let sql = `
+        SELECT 
+            p.id,
+            p.title,
+            p.slug,
+            p.description,
+            p.size,
+            p.price,
+            p.stock_quantity,
+            p.image_url,
+            p.creation_date,
+            p.updated_at,
+            p.discount,
+            p.artist,
+            SUM(op.quantity) as total_quantity_sold,
+            COUNT(DISTINCT op.id_order) as total_orders
+        FROM posters p
+        INNER JOIN orders_posters op ON p.id = op.id_poster
+        INNER JOIN orders o ON op.id_order = o.id
+        GROUP BY p.id, p.title, p.slug, p.description, p.size, p.price, p.stock_quantity, p.image_url, p.creation_date, p.updated_at, p.discount, p.artist
+        ORDER BY total_quantity_sold DESC
         LIMIT ?
     `;
 
@@ -139,7 +157,7 @@ const getMostRecent = (req, res) => {
     // Query SQL per ordinare i poster per data di creazione in ordine decrescente
     const sql = `
         SELECT * FROM posters 
-        WHERE available = 1 
+        WHERE stock_quantity > 0
         ORDER BY creation_date DESC 
         LIMIT ?
     `;
@@ -169,10 +187,9 @@ const getArtists = (req, res) => {
     const sql = `
         SELECT 
             artist,
-            COUNT(*) as poster_count,
-            SUM(total_sell) as total_sales
+            COUNT(*) as poster_count
         FROM posters 
-        WHERE available = 1 
+        WHERE stock_quantity > 0
         GROUP BY artist 
         ORDER BY artist ASC
     `;
@@ -208,7 +225,7 @@ const getByArtist = (req, res) => {
     // Query SQL per ottenere i poster di un artista specifico
     const sql = `
         SELECT * FROM posters 
-        WHERE artist = ? AND available = 1 
+        WHERE artist = ? AND stock_quantity > 0
         ORDER BY ${orderBy} ${order}
         LIMIT ?
     `;
@@ -250,25 +267,48 @@ const search = (req, res) => {
         })
     }
 
-    //Inserisco altri parametri di filtraggio????
-    // DA VEDERE 
+    //Inserisco altri parametri di filtraggio
+    const orderBy = req.query.orderBy || `creation_date`; // posso anche filtrare per total_sell, price, title
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
+    const limit = parseInt(req.query.limit) || 50;
+    const minPrice = parseFloat(req.query.minPrice) || 0;
+    const maxPrice = parseFloat(req.query.maxPrice) || 9999;
+    const size = req.query.size; // quindi sm, md e lg
+    const artist = req.query.artist;
 
     console.log(`Cerco ${term}`);
 
-    // Qui vado a mettere il valore allínterno del simbolo % in modo da cercare il valore ovunque
-    const searchedTerm = `%${term}%`;
-
-    const sql = `
+    let sql = `
         SELECT * FROM posters 
-        WHERE available = 1 
+        WHERE stock_quantity > 0
         AND (
             title LIKE ? OR 
             artist LIKE ?
         )
+        AND price BETWEEN ? AND ?
     `;
 
+    // Qui vado a mettere il valore allínterno del simbolo % in modo da cercare il valore ovunque
+    const searchedTerm = `%${term}%`;
+
     // Mi creo un array dei valori da inserire nella query
-    const params = [searchedTerm, searchedTerm]
+    const params = [searchedTerm, searchedTerm, minPrice, maxPrice]
+
+    // Aggiungo filtro per la taglia se richesto
+    if (size && [`sm`, `md`, `lg`].includes(size)) {
+        sql += `AND size = ?`;
+        params.push(size);
+    }
+
+    // Aggiungo filtro per la artista se richesto
+    if (artist && artist.trim().length > 0) {
+        sql += `AND artist LIKE ?`;
+        params.push(`%${artist}%`);
+    }
+
+    // Aggiungo filtro ordinamento e limite
+    sql += `ORDER BY ${orderBy} ${order} LIMIT ?`;
+    params.push(limit);
 
     connection.query(sql, params, (err, searchResults) => {
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
@@ -281,10 +321,22 @@ const search = (req, res) => {
             }
         })
 
+        // Debug
+        const stats = {
+            totalFound: searchResults.length,
+            searchedTerm,
+            filtersApplied: {
+                priceRange: minPrice > 0 || maxPrice < 9999 ? `${minPrice} - ${maxPrice}` : `Nessuno`,
+                size: size || `Tutte le taglie`,
+                artist: artist || `Tutti gli artisti`
+            }
+        }
+
         // Restituisco i risultati
         res.json({
             status: 'success',
             message: `Risultati ricerca per: "${term}"`,
+            stats,
             data: posters
         })
     })
