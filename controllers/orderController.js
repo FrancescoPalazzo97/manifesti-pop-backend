@@ -22,7 +22,7 @@ const storeOrders = (req, res) => {
     } = req.body;
 
     // Controllo che tutti i campi essenziali siano presenti
-    if (!name || !email || !address || !shipment_costs || !posters || posters.length === 0)
+    if (!name || !email || !address || shipment_costs === undefined || !posters || posters.length === 0)
         return res.status(400).json({ error: `Mancano dei dati obbligatori` });
 
 
