@@ -257,89 +257,76 @@ const getByArtist = (req, res) => {
 };
 
 const search = (req, res) => {
-    // Mi vad a prendere il parametro di ricerca
     const term = req.query.term;
-
-    // Controllo se esiste
-    if (!term || term.trim().length === 0) {
-        return res.status(400).json({
-            error: `Parametro di ricerca mancante`
-        })
-    }
-
-    //Inserisco altri parametri di filtraggio
-    const orderBy = req.query.orderBy || `creation_date`; // posso anche filtrare per total_sell, price, title
+    const orderBy = req.query.orderBy || `creation_date`;
     const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
     const limit = parseInt(req.query.limit) || 50;
     const minPrice = parseFloat(req.query.minPrice) || 0;
     const maxPrice = parseFloat(req.query.maxPrice) || 9999;
-    const size = req.query.size; // quindi sm, md e lg
+    const size = req.query.size;
     const artist = req.query.artist;
 
-    console.log(`Cerco ${term}`);
-
+    // Query base
     let sql = `
         SELECT * FROM posters 
         WHERE stock_quantity > 0
-        AND (
-            title LIKE ? OR 
-            artist LIKE ?
-        )
         AND price BETWEEN ? AND ?
     `;
+    const params = [minPrice, maxPrice];
 
-    // Qui vado a mettere il valore allínterno del simbolo % in modo da cercare il valore ovunque
-    const searchedTerm = `%${term}%`;
+    // Se è presente un termine di ricerca
+    if (term && term.trim().length > 0) {
+        const searchedTerm = `%${term.trim()}%`;
+        sql += ` AND (title LIKE ? OR artist LIKE ?)`;
+        params.push(searchedTerm, searchedTerm);
+    }
 
-    // Mi creo un array dei valori da inserire nella query
-    const params = [searchedTerm, searchedTerm, minPrice, maxPrice]
-
-    // Aggiungo filtro per la taglia se richesto
+    // Filtro per taglia
     if (size && [`sm`, `md`, `lg`].includes(size)) {
-        sql += `AND size = ?`;
+        sql += ` AND size = ?`;
         params.push(size);
     }
 
-    // Aggiungo filtro per la artista se richesto
+    // Filtro per artista specifico
     if (artist && artist.trim().length > 0) {
-        sql += `AND artist LIKE ?`;
-        params.push(`%${artist}%`);
+        sql += ` AND artist LIKE ?`;
+        params.push(`%${artist.trim()}%`);
     }
 
-    // Aggiungo filtro ordinamento e limite
-    sql += `ORDER BY ${orderBy} ${order} LIMIT ?`;
+    // Aggiunta ordinamento e limite
+    sql += ` ORDER BY ${orderBy} ${order} LIMIT ?`;
     params.push(limit);
 
+    // Debug opzionale
+    console.log('SQL:', sql);
+    console.log('Params:', params);
+
+    // Esecuzione query
     connection.query(sql, params, (err, searchResults) => {
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
 
-        // Vado, come al solito, a definire il path dell'immagine
-        const posters = searchResults.map(result => {
-            return {
-                ...result,
-                image_url: `${req.imagePath}${result.image_url}`
-            }
-        })
+        const posters = searchResults.map(result => ({
+            ...result,
+            image_url: `${req.imagePath}${result.image_url}`
+        }));
 
-        // Debug
         const stats = {
             totalFound: searchResults.length,
-            searchedTerm,
+            searchedTerm: term || 'Nessuno',
             filtersApplied: {
-                priceRange: minPrice > 0 || maxPrice < 9999 ? `${minPrice} - ${maxPrice}` : `Nessuno`,
+                priceRange: (minPrice > 0 || maxPrice < 9999) ? `${minPrice} - ${maxPrice}` : `Nessuno`,
                 size: size || `Tutte le taglie`,
                 artist: artist || `Tutti gli artisti`
             }
-        }
+        };
 
-        // Restituisco i risultati
         res.json({
             status: 'success',
-            message: `Risultati ricerca per: "${term}"`,
+            message: `Risultati ricerca${term ? ` per: "${term}"` : ''}`,
             stats,
             data: posters
-        })
-    })
+        });
+    });
 
 }
 
