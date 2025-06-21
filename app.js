@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 const port = process.env.PORT || 3000;
 
+const emailRouter = require('./routers/emailRouter');
 
 const imagePath = require(`./middlewares/imagePath.js`);
 const notFound = require(`./middlewares/notFound.js`);
@@ -26,6 +27,7 @@ app.use(express.static(`public`));
 // Monta il router dedicato ai "posters" sulla rotta `/posters`
 app.use(`/posters`, postersRouter);
 app.use(`/order`, orderRouter);
+app.use('/api/email', emailRouter);
 
 // Rotta principale che restituisce un messaggio di benvenuto
 app.get(`/`, (req, res) => {

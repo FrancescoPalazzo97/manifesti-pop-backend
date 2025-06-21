@@ -4,7 +4,7 @@ const storeOrders = (req, res) => {
 
     // funzione per la validazione dei dati numerici
     const numValidator = (num) => {
-        if (isNaN(num) || num <= 0) {
+        if (isNaN(num) || num < 0) {
             return res.status(400).json({
                 error: `Dati non validi`
             });
@@ -144,7 +144,7 @@ const storeOrders = (req, res) => {
             `
             connection.query(sql, [posterId], (err, result) => {
                 if (err) return handleError(`Errore database: ${err}`);
-                if (result === 0) return handleError(`Poster ${posterId} non disponibile`);
+                if (result.length === 0) return handleError(`Poster ${posterId} non disponibile`);
                 console.log(`Mi sono recuperato il poster ${i} dal db`)
                 const posterResult = result[0];
 
