@@ -269,7 +269,7 @@ const search = (req, res) => {
     // Query base
     let sql = `
         SELECT * FROM posters 
-        WHERE stock_quantity > 0
+        WHERE stock_quantity >= 0
         AND price BETWEEN ? AND ?
     `;
     const params = [minPrice, maxPrice];
