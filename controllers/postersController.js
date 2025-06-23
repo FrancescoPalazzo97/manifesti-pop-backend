@@ -258,15 +258,19 @@ const getByArtist = (req, res) => {
 
 const search = (req, res) => {
     const term = req.query.term;
-    const orderBy = req.query.orderBy || `creation_date`;
-    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
     const limit = parseInt(req.query.limit) || 50;
     const minPrice = parseFloat(req.query.minPrice) || 0;
     const maxPrice = parseFloat(req.query.maxPrice) || 9999;
     const size = req.query.size;
     const artist = req.query.artist;
 
-    // Query base
+    // Valori validi per orderBy
+    const validOrderBy = ['title', 'price', 'creation_date', 'stock_quantity'];
+    const orderBy = validOrderBy.includes(req.query.orderBy) ? req.query.orderBy : 'creation_date';
+
+    // Ordine ASC/DESC
+    const order = req.query.orderDirection === 'asc' ? 'ASC' : 'DESC';
+
     let sql = `
         SELECT * FROM posters 
         WHERE stock_quantity >= 0
@@ -274,20 +278,17 @@ const search = (req, res) => {
     `;
     const params = [minPrice, maxPrice];
 
-    // Se è presente un termine di ricerca
     if (term && term.trim().length > 0) {
         const searchedTerm = `%${term.trim()}%`;
         sql += ` AND (title LIKE ? OR artist LIKE ?)`;
         params.push(searchedTerm, searchedTerm);
     }
 
-    // Filtro per taglia
-    if (size && [`sm`, `md`, `lg`].includes(size)) {
+    if (size && ['sm', 'md', 'lg'].includes(size)) {
         sql += ` AND size = ?`;
         params.push(size);
     }
 
-    // Filtro per artista specifico
     if (artist && artist.trim().length > 0) {
         sql += ` AND artist LIKE ?`;
         params.push(`%${artist.trim()}%`);
@@ -297,11 +298,10 @@ const search = (req, res) => {
     sql += ` ORDER BY ${orderBy} ${order} LIMIT ?`;
     params.push(limit);
 
-    // Debug opzionale
+    // Debug
     console.log('SQL:', sql);
     console.log('Params:', params);
 
-    // Esecuzione query
     connection.query(sql, params, (err, searchResults) => {
         if (err) return res.status(500).json({ error: `Database query failed: ${err}` });
 
@@ -327,7 +327,7 @@ const search = (req, res) => {
             data: posters
         });
     });
+};
 
-}
 
 module.exports = { index, show, storeReviews, getMostSold, getMostRecent, getByArtist, getArtists, search };
