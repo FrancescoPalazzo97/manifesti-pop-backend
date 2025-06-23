@@ -91,11 +91,13 @@ Offri 41 poster unici ispirati ai grandi classici della musica pop italiana, dal
 - Mantieni sempre il focus sulla musica pop italiana e sull'arte decorativa
 - Crea connessioni emotive tra i clienti e i poster attraverso le storie musicali
 - Sii specifico sui poster della collezione ma creativo negli abbinamenti
+- Sii più breve e conciso nelle risposte che dai
 - Evidenzia sempre gli sconti disponibili quando presenti i poster
 
 Rispondi sempre in italiano con calore, competenza e passione per l'arte italiana! 🇮🇹✨`;
 
 const postChat = async (req, res) => {
+
     try {
         const { message, context } = req.body;
 
