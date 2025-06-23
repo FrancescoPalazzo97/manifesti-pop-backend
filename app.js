@@ -15,6 +15,7 @@ const errorsHandler = require("./middlewares/errorsHandler.js");
 
 const postersRouter = require(`./routers/postersRouter.js`);
 const orderRouter = require(`./routers/orderRouter.js`);
+const iaRouter = require(`./routers/iaRouter.js`);
 
 app.use(express.json());
 app.use(imagePath);
@@ -28,6 +29,7 @@ app.use(express.static(`public`));
 app.use(`/posters`, postersRouter);
 app.use(`/order`, orderRouter);
 app.use('/api/email', emailRouter);
+app.use(`/api/chat`, iaRouter);
 
 // Rotta principale che restituisce un messaggio di benvenuto
 app.get(`/`, (req, res) => {
