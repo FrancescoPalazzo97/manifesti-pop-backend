@@ -515,6 +515,10 @@ class EmailService {
                 font-size: 13px;
                 padding: 10px 18px;
                 margin-bottom: 20px;
+                display: flex !important;
+                justify-content: center !important;
+                align-self: center !important;
+                text-align: center !important;
             }
             
             .footer {
